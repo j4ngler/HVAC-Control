@@ -1,0 +1,18 @@
+# Notebook and core ML stack
+jupyterlab
+notebook
+numpy
+pandas
+matplotlib
+tensorflow
+xgboost
+scikit-learn
+scikit-optimize
+
+# Simulation stack inspired by the extended Hanoi pipeline
+gymnasium
+sinergym>=3.12,<4
+pythermalcomfort>=2.0
+
+# Optional helpers
+ipykernel
