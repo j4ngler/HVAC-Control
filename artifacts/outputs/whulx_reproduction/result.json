@@ -1,0 +1,143 @@
+{
+  "episodes": 1000,
+  "day_index": 0,
+  "raw_shape": [
+    42934,
+    27
+  ],
+  "after_clean_shape": [
+    42338,
+    27
+  ],
+  "xgboost": {
+    "x_shape": [
+      42338,
+      21
+    ],
+    "train_shape": [
+      33870,
+      21
+    ],
+    "test_shape": [
+      8468,
+      21
+    ],
+    "mae": 0.1823367900235488,
+    "rmse": 0.3481862664841333,
+    "r2": 0.47974720287210015
+  },
+  "human_baseline": {
+    "comfort_pct": 100.0,
+    "mean_indoor_temp": 25.78
+  },
+  "dqn": {
+    "comfort_pct": 100.0,
+    "ac_on_pct": 0.0,
+    "window_open_pct": 41.66666666666667,
+    "mean_indoor_temp": 26.061226511572798,
+    "total_reward": 0.0,
+    "actions": [
+      0,
+      12,
+      0,
+      0,
+      0,
+      0,
+      0,
+      12,
+      0,
+      12,
+      12,
+      12
+    ],
+    "action_distribution_pct": {
+      "0": 58.333333333333336,
+      "12": 41.66666666666667
+    }
+  },
+  "reported_whulx_readme": {
+    "comfort_duration_increase_pct": 24.0,
+    "ac_usage_decrease_pct": 24.7
+  },
+  "evaluation": {
+    "eval_days": 1763,
+    "controllers": [
+      {
+        "controller": "DQN",
+        "ac_on_pct": 0.0,
+        "comfort_pct": 67.9854414823218,
+        "mean_indoor_temp": 24.855956682450053,
+        "total_reward": -14.506655411846976,
+        "window_open_pct": 34.09434675742106
+      },
+      {
+        "controller": "Human",
+        "ac_on_pct": 14.374172811495555,
+        "comfort_pct": 72.84458309699376,
+        "mean_indoor_temp": 24.310188598979014,
+        "window_open_pct": 52.16959727736812
+      },
+      {
+        "controller": "Off_Closed",
+        "ac_on_pct": 0.0,
+        "comfort_pct": 67.64038570618264,
+        "mean_indoor_temp": 24.86285253831306,
+        "total_reward": -15.209369989813887,
+        "window_open_pct": 0.0
+      },
+      {
+        "controller": "Window_Open",
+        "ac_on_pct": 0.0,
+        "comfort_pct": 70.44337303838154,
+        "mean_indoor_temp": 24.75285158053842,
+        "total_reward": -10.725967428091124,
+        "window_open_pct": 100.0
+      },
+      {
+        "controller": "AC_25_Closed",
+        "ac_on_pct": 100.0,
+        "comfort_pct": 81.05029306107014,
+        "mean_indoor_temp": 25.04358028312644,
+        "total_reward": -628.0541599554248,
+        "window_open_pct": 0.0
+      },
+      {
+        "controller": "AC_26_Closed",
+        "ac_on_pct": 100.0,
+        "comfort_pct": 70.01323501607109,
+        "mean_indoor_temp": 25.64904447065375,
+        "total_reward": -629.8193116574807,
+        "window_open_pct": 0.0
+      },
+      {
+        "controller": "AC_27_Closed",
+        "ac_on_pct": 100.0,
+        "comfort_pct": 75.75628663263377,
+        "mean_indoor_temp": 25.489264199286954,
+        "total_reward": -628.3235417822175,
+        "window_open_pct": 0.0
+      }
+    ],
+    "action_distribution_pct": {
+      "DQN": {
+        "0": 65.90565324257894,
+        "12": 34.094346757421064
+      },
+      "Off_Closed": {
+        "0": 100.0
+      },
+      "Window_Open": {
+        "12": 100.0
+      },
+      "AC_25_Closed": {
+        "6": 100.0
+      },
+      "AC_26_Closed": {
+        "7": 100.0
+      },
+      "AC_27_Closed": {
+        "8": 100.0
+      }
+    }
+  }
+}
