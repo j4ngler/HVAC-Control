@@ -37,24 +37,39 @@ def comfort_ok(indoor_temp, outdoor_temp):
     return lower <= float(indoor_temp) <= upper
 
 
-def calculate_reward(state, action, next_state):
+def normalize_state(state):
+    norm = np.copy(state).astype(np.float32)
+    norm[0] = float(state[0]) / 40.0       # Indoor_Temp
+    norm[1] = float(state[1]) / 100.0      # Indoor_RH
+    norm[2] = float(state[2]) / 40.0       # Outdoor_Temp
+    norm[3] = float(state[3]) / 100.0      # Outdoor_RH
+    norm[4] = float(state[4]) / 10.0       # Rain
+    norm[5] = float(state[5]) / 10.0       # Cloud
+    norm[6] = float(state[6]) / 10.0       # Windspeed
+    norm[7] = float(state[7]) / 23.0       # Hour
+    return norm
+
+
+def calculate_reward(state, action, next_state, comfort_weight=120.0):
     indoor_temp = float(next_state[0])
     outdoor_temp = float(next_state[2])
     _, lower, upper, _ = comfort_bounds(outdoor_temp)
 
     if lower <= indoor_temp <= upper:
-        reward = 0.0
+        comfort_penalty = 0.0
     elif indoor_temp < lower:
-        reward = -((indoor_temp - lower) ** 2)
+        comfort_penalty = -((indoor_temp - lower) ** 2)
     else:
-        reward = -((indoor_temp - upper) ** 2)
+        comfort_penalty = -((indoor_temp - upper) ** 2)
 
     if action in {0, 12}:
-        reward += 0.0
+        energy_penalty = 0.0
     elif action > 12:
-        reward -= 2 * (60 * 0.87 * 1)
+        energy_penalty = -2 * (60 * 0.87 * 1)
     else:
-        reward -= 60 * 0.87 * 1
+        energy_penalty = -(60 * 0.87 * 1)
+
+    reward = comfort_weight * comfort_penalty + energy_penalty
     return float(reward)
 
 
@@ -106,16 +121,20 @@ class DQN(tf.keras.Model):
         return self.output_layer(x)
 
 
-def update_q_network(q_network, replay_buffer, optimizer, loss_fn, gamma, num_actions, batch_size):
+def update_q_network(q_network, target_q_network, replay_buffer, optimizer, loss_fn, gamma, num_actions, batch_size):
     states, actions, next_states, rewards = zip(*replay_buffer.sample(batch_size))
-    states = tf.convert_to_tensor(np.array(states), dtype=tf.float32)
-    next_states = tf.convert_to_tensor(np.array(next_states), dtype=tf.float32)
+    
+    norm_states = np.array([normalize_state(s) for s in states])
+    norm_next_states = np.array([normalize_state(s) for s in next_states])
+    
+    states_tensor = tf.convert_to_tensor(norm_states, dtype=tf.float32)
+    next_states_tensor = tf.convert_to_tensor(norm_next_states, dtype=tf.float32)
     actions = tf.convert_to_tensor(np.array(actions), dtype=tf.int32)
     rewards = tf.convert_to_tensor(np.array(rewards), dtype=tf.float32)
 
     with tf.GradientTape() as tape:
-        q_values = q_network(states)
-        target_q_values = q_network(next_states)
+        q_values = q_network(states_tensor)
+        target_q_values = target_q_network(next_states_tensor)
         target_q_values = rewards + gamma * tf.reduce_max(target_q_values, axis=1)
         mask = tf.one_hot(actions, num_actions)
         q_action = tf.reduce_sum(q_values * mask, axis=1)
@@ -129,7 +148,8 @@ def update_q_network(q_network, replay_buffer, optimizer, loss_fn, gamma, num_ac
 def epsilon_greedy_policy(q_network, state, epsilon, num_actions):
     if np.random.rand() < epsilon:
         return int(np.random.randint(num_actions))
-    q_values = q_network(np.array([state], dtype=np.float32))
+    norm_state = normalize_state(state)
+    q_values = q_network(np.array([norm_state], dtype=np.float32))
     return int(np.argmax(q_values[0]))
 
 
@@ -276,6 +296,7 @@ def rollout_day(
                 losses.append(
                     update_q_network(
                         q_network,
+                        train_cfg["target_q_network"],
                         replay_buffer,
                         train_cfg["optimizer"],
                         train_cfg["loss_fn"],
@@ -407,6 +428,11 @@ def main():
     num_actions = 24
     q_network = DQN(num_actions)
     q_network(np.zeros((1, 8), dtype=np.float32))
+    
+    target_q_network = DQN(num_actions)
+    target_q_network(np.zeros((1, 8), dtype=np.float32))
+    target_q_network.set_weights(q_network.get_weights())
+    
     replay_buffer = ReplayBuffer(10000)
     optimizer = tf.optimizers.Adam(0.001)
     loss_fn = tf.losses.MeanSquaredError()
@@ -420,21 +446,35 @@ def main():
         "gamma": 0.9,
         "optimizer": optimizer,
         "loss_fn": loss_fn,
+        "target_q_network": target_q_network,
     }
+    
+    max_complete_days = max(1, (len(data) - 24) // 24)
     history = []
+    
     for episode in range(args.episodes):
+        # Multi-day training: randomly select a day for this episode
+        train_day_index = random.randint(0, max_complete_days - 1)
+        train_data_test, train_xgboost_test = choose_day(train_day_index * 24, data)
+        
         _, actions, rewards, losses = rollout_day(
             model_xgb,
             q_network,
-            data_test,
-            xgboost_test,
+            train_data_test,
+            train_xgboost_test,
             epsilon,
             train=True,
             replay_buffer=replay_buffer,
             train_cfg=train_cfg,
         )
+        
         if epsilon > min_epsilon:
             epsilon *= epsilon_decay
+            
+        # Update target network weights periodically
+        if (episode + 1) % 10 == 0:
+            target_q_network.set_weights(q_network.get_weights())
+            
         history.append(
             {
                 "episode": episode + 1,

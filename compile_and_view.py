@@ -44,6 +44,20 @@ def compile_latex():
         tar.add(tex_file, arcname="report.tex")
         # Add hust_logo.png
         tar.add(logo_file, arcname="hust_logo.png")
+        
+        # Add WHU-LX reproduction figures
+        whulx_figs = [
+            "artifacts/outputs/whulx_reproduction/training_history_plot.png",
+            "artifacts/outputs/whulx_reproduction/controller_comparison_metrics.png",
+            "artifacts/outputs/whulx_reproduction/performance_comparison.png",
+            "artifacts/outputs/whulx_reproduction/controller_total_reward.png",
+        ]
+        for fig in whulx_figs:
+            if os.path.exists(fig):
+                tar.add(fig, arcname=fig)
+                print(f"[+] Added figure: {fig}")
+            else:
+                print(f"[!] Warning: figure {fig} not found on disk!")
     tar_stream.seek(0)
     
     print("[*] Sending compilation request to latexonline.cc...")
