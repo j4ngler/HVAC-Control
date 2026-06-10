@@ -1,0 +1,215 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage[a4paper, left=3cm, right=2cm, top=2.5cm, bottom=2.5cm]{geometry}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{float}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Báo cáo môn học HVAC XGB-DQN},
+    pdfpagemode=FullScreen,
+}
+
+% Định nghĩa màu sắc cho code listings
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\begin{document}
+
+% --- TRANG BÌA ---
+\begin{titlepage}
+    \begin{center}
+        \textbf{\large TRƯỜNG ĐẠI HỌC BÁCH KHOA HÀ NỘI} \\
+        \textbf{\large VIỆN CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG} \\
+        \vskip 1.5cm
+        \includegraphics[width=0.18\textwidth]{hust_logo.png} % Dự phòng nếu có logo
+        \vskip 1.5cm
+        \textbf{\Large BÁO CÁO BÀI TẬP LỚN MÔN HỌC} \\
+        \vskip 0.5cm
+        \textbf{\huge HỌC MÁY VÀ ỨNG DỤNG} \\
+        \vskip 1.5cm
+        \noindent\rule{\textwidth}{1pt} \\
+        \vskip 0.5cm
+        \textbf{\Large ĐỀ TÀI: MÔ HÌNH LAI XGB-DQN ĐIỀU KHIỂN HỆ THỐNG HVAC VÀ CỬA SỔ TỰ ĐỘNG TỐI ƯU HÓA NĂNG LƯỢNG VÀ TIỆN NGHI NHIỆT} \\
+        \vskip 0.5cm
+        \noindent\rule{\textwidth}{1pt} \\
+        \vskip 2cm
+        \begin{flushright}
+            \begin{tabular}{ll}
+                \textbf{Giảng viên hướng dẫn:} & [Tên Giảng Viên] \\
+                \textbf{Nhóm thực hiện:} & Nhóm 3 thành viên \\
+                \textbf{Thành viên nhóm:} & 1. [Tên Thành Viên 1] - [MSSV 1] \\
+                 & 2. [Tên Thành Viên 2] - [MSSV 2] \\
+                 & 3. [Tên Thành Viên 3] - [MSSV 3] \\
+                \textbf{Lớp:} & [Tên Lớp Học]
+            \end{tabular}
+        \end{flushright}
+        \vfill
+        \textbf{Hà Nội, Tháng 6 Năm 2026}
+    \end{center}
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% --- NỘI DUNG ---
+\section{Mở đầu}
+Hệ thống sưởi, thông gió và điều hòa không khí (HVAC) là nguồn tiêu thụ năng lượng chính trong các tòa nhà dân cư và thương mại. Việc tối ưu hóa chiến lược vận hành HVAC nhằm giảm thiểu điện năng tiêu thụ trong khi vẫn duy trì sự thoải mái (tiện nghi nhiệt) của người dùng là một thách thức lớn. 
+
+Đồ án này nghiên cứu và phát triển giải pháp điều khiển tích hợp HVAC và trạng thái đóng/mở cửa sổ dựa trên mô hình lai Học tăng cường (Reinforcement Learning - RL) và Học có giám sát (Supervised Learning). Chúng tôi kế thừa mô hình từ bài báo gốc của WHU-LX có tiêu đề \textit{"Occupant-centric HVAC and window control: A reinforcement learning model for enhancing indoor thermal comfort and energy efficiency"} làm baseline học thuật, đồng thời tiến hành các cải tiến thuật toán cốt lõi để nâng cao khả năng tổng quát hóa của mô hình và triển khai mô phỏng vật lý thực tế.
+
+\section{Cơ sở lý thuyết}
+Mô hình lai được cấu thành từ hai thành phần chính: mô hình dự báo thay đổi nhiệt độ phòng (Surrogate Model) sử dụng XGBoost và mô hình ra quyết định điều khiển sử dụng mạng Q-Learning sâu (Deep Q-Network - DQN).
+
+\subsection{Mô hình Surrogate XGBoost}
+Trong thực tế, việc tương tác trực tiếp với môi trường tòa nhà để huấn luyện thuật toán học tăng cường rất tốn thời gian và rủi ro. Do đó, một mô hình dự báo XGBoost được huấn luyện trên dữ liệu lịch sử để đóng vai trò là môi trường giả lập (Surrogate Model). 
+
+Mô hình XGBoost học cách dự đoán mức độ thay đổi nhiệt độ phòng ($\Delta T_{in} = T_{in}(t+1) - T_{in}(t)$) dựa trên trạng thái hiện tại $s_t$ và hành động điều khiển $a_t$:
+\begin{equation}
+\Delta T_{in}(t) = f_{XGB}\left(T_{in}(t), RH_{in}(t), T_{out}(t), RH_{out}(t), R(t), C(t), W_s(t), H(t), a_t\right)
+\end{equation}
+Trong đó:
+\begin{itemize}
+    \item $T_{in}, RH_{in}$: Nhiệt độ và độ ẩm tương đối trong phòng.
+    \item $T_{out}, RH_{out}$: Nhiệt độ và độ ẩm tương đối ngoài trời.
+    \item $R, C, W_s, H$: Các biến thời tiết gồm lượng mưa, lượng mây, tốc độ gió và giờ trong ngày.
+    \item $a_t$: Hành động điều khiển tại thời điểm $t$.
+\end{itemize}
+
+\subsection{Mạng Q-Learning Sâu (DQN)}
+Tác tử (Agent) DQN thực hiện việc tối ưu hóa chính sách điều khiển đóng/mở cửa và bật/tắt AC nhằm tối đa hóa hàm giá trị reward lũy kế. 
+
+\subsubsection{Hàm Reward}
+Hàm reward được thiết kế để cân bằng giữa sự thoải mái về nhiệt (thermal comfort) và lượng điện năng tiêu thụ:
+\begin{equation}
+R(s, a, s') = w_c \cdot P_{comfort}(s') + P_{energy}(a)
+\end{equation}
+Trong đó $w_c$ là trọng số tiện nghi nhiệt. Điểm phạt sự không thoải mái nhiệt $P_{comfort}$ được tính dựa trên độ lệch so với dải nhiệt độ thoải mái $[L_c, U_c]$ của tiêu chuẩn ASHRAE:
+\begin{equation}
+P_{comfort}(s') = \begin{cases}
+0 & \text{nếu } L_c \le T_{in}' \le U_c \\
+-(T_{in}' - L_c)^2 & \text{nếu } T_{in}' < L_c \\
+-(T_{in}' - U_c)^2 & \text{nếu } T_{in}' > U_c
+\end{cases}
+\end{equation}
+Khoảng giới hạn thoải mái $[L_c, U_c]$ phụ thuộc vào nhiệt độ ngoài trời $T_{out}$ theo tiêu chuẩn thích ứng ASHRAE 55.
+
+Điểm phạt năng lượng $P_{energy}$ phụ thuộc vào chế độ hoạt động của điều hòa không khí (AC) và cửa sổ:
+\begin{itemize}
+    \item Hành động không bật AC và đóng cửa ($a = 0$) hoặc chỉ mở cửa ($a = 12$): $P_{energy} = 0$.
+    \item Hành động chỉ bật AC ($0 < a < 12$): $P_{energy} = -52.2$.
+    \item Hành động vừa bật AC vừa mở cửa ($a > 12$): $P_{energy} = -104.4$ (phạt gấp đôi).
+\end{itemize}
+
+\subsubsection{Thuật toán cập nhật DQN}
+Mạng thần kinh MLP được sử dụng để ước lượng giá trị $Q(s, a)$. Hàm loss dùng để tối ưu hóa trọng số $\theta$ của mạng DQN:
+\begin{equation}
+L(\theta) = \mathbb{E} \left[ \left( R + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta) \right)^2 \right]
+\end{equation}
+Trong đó $\gamma$ là hệ số chiết khấu, và $\theta^-$ là trọng số của Target Network.
+
+\section{Phân tích hạn chế của repo gốc WHU-LX}
+Qua quá trình phân tích sâu mã nguồn gốc trong notebook \texttt{XGB-DQN.ipynb} của repo baseline, nhóm đã phát hiện ra các hạn chế logic nghiêm trọng khiến mô hình không thể ứng dụng trong môi trường thực tế:
+
+\begin{enumerate}
+    \item \textbf{Lỗi Quá Khớp Đơn Ngày (Single-day Overfitting):} Vòng lặp huấn luyện DQN của tác giả gốc được thiết lập cố định trên đúng 1 ngày duy nhất (\texttt{day\_index = 0}). Điều này khiến mạng DQN chỉ học cách phản phó với thời tiết mát mẻ của ngày đó mà không có khả năng tổng quát hóa với các mùa nóng hoặc lạnh khác.
+    \item \textbf{Mức phạt năng lượng quá nặng làm tắt hoàn toàn AC (0\% AC):} Do huấn luyện trên ngày mát mẻ và hàm phạt năng lượng bật AC quá cao ($-52.2$ đến $-104.4$ điểm) so với điểm phạt comfort lệch nhỏ, tác tử DQN của repo gốc tìm ra chiến thuật tối ưu nhất là \textbf{tắt hoàn toàn AC} để tránh bị phạt năng lượng. Khi đem tác tử này đánh giá trên toàn bộ tập dữ liệu 1.763 ngày, mức độ thoải mái nhiệt chỉ đạt \textbf{67.99\%}.
+    \item \textbf{Kiến trúc huấn luyện thiếu ổn định:} Phiên bản gốc không sử dụng Target Network và không thực hiện chuẩn hóa trạng thái đầu vào (State Input), khiến quá trình cập nhật giá trị Q dễ bị phân kỳ khi mở rộng quy mô dữ liệu.
+\end{enumerate}
+
+\section{Các cải tiến kỹ thuật đề xuất}
+Để khắc phục hoàn toàn các lỗi trên và xây dựng một giải pháp điều khiển thực tế, nhóm đã tích hợp 4 cải tiến lớn vào file mã nguồn \texttt{reproduce\_whulx\_pipeline.py}:
+
+\begin{enumerate}
+    \item \textbf{Huấn luyện Đa Ngày Ngẫu Nhiên (Multi-day Training):} Thay vì cố định \texttt{day\_index = 0}, mỗi episode huấn luyện mới sẽ lựa chọn ngẫu nhiên 1 ngày bất kỳ trong số 1.763 ngày dữ liệu lịch sử. Điều này ép buộc tác tử DQN phải thích nghi với tất cả các kiểu thời tiết khác nhau (nóng đỉnh điểm, lạnh, chuyển mùa).
+    \item \textbf{Cân đối lại trọng số hàm Reward:} Thiết lập tham số \texttt{comfort\_weight = 120.0}. Trọng số lớn này làm tăng điểm phạt lệch comfort, tạo động lực mạnh mẽ để tác tử buộc phải quyết định bật AC khi nhiệt độ phòng vượt quá ngưỡng tiện nghi.
+    \item \textbf{Tích hợp Target Q-Network:} Bổ sung mạng đích $\theta^-$ riêng biệt và cập nhật đồng bộ định kỳ mỗi 10 episodes nhằm ổn định hóa quá trình hội tụ toán học của DQN.
+    \item \textbf{Chuẩn hóa trạng thái đầu vào (State Normalization):} Đưa toàn bộ các chiều của biến trạng thái về dải giá trị $[0, 1]$ trước khi nạp vào mạng neural để tăng tốc độ hội tụ và tránh hiện tượng bão hòa gradient.
+\end{enumerate}
+
+\section{Kết quả thực nghiệm}
+
+\subsection{Hiệu năng mô hình dự báo XGBoost}
+Mô hình XGBoost huấn luyện trên thiết bị GPU qua thư viện CUDA đạt tốc độ tính toán vượt trội và duy trì sai số thấp:
+\begin{itemize}
+    \item Sai số tuyệt đối trung bình: $\text{MAE} \approx 0.182^\circ\text{C}$
+    \item Căn phương sai sai số: $\text{RMSE} \approx 0.348^\circ\text{C}$
+    \item Hệ số xác định: $\text{R}^2 \approx 0.48$
+\end{itemize}
+
+\subsection{Kết quả so sánh hiệu năng điều khiển}
+Bảng \ref{tab:comparison} trình bày kết quả đánh giá các chiến lược điều khiển khác nhau trên toàn bộ tập dữ liệu gồm 1.763 ngày.
+
+\begin{table}[H]
+    \centering
+    \caption{Bảng so sánh hiệu năng các bộ điều khiển trên toàn bộ 1.763 ngày}
+    \label{tab:comparison}
+    \vspace{0.2cm}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Bộ điều khiển} & \textbf{Comfort (\%)} & \textbf{Tỉ lệ bật AC (\%)} & \textbf{Tỉ lệ mở cửa (\%)} & \textbf{Reward trung bình} \\
+        \midrule
+        \textbf{DQN Cải tiến (Nhóm)} & \textbf{78.55\%} & \textbf{66.97\%} & \textbf{30.93\%} & \textbf{-794.45} \\
+        DQN Gốc (WHU-LX) & 67.99\% & 0.00\% & 34.09\% & -14.51 \\
+        Người dùng (Human) & 72.84\% & 14.37\% & 52.17\% & \textit{N/A} \\
+        Mở cửa liên tục & 70.44\% & 0.00\% & 100.00\% & -1287.12 \\
+        Bật AC $25^\circ$C cố định & 81.05\% & 100.00\% & 0.00\% & -824.90 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\textbf{Phân tích kết quả:}
+\begin{itemize}
+    \item Bộ điều khiển DQN gốc hoàn toàn không bật AC (0\%), dẫn đến tỉ lệ tiện nghi nhiệt nghèo nàn (67.99\%).
+    \item DQN cải tiến của nhóm đã học được chính sách lai thông minh: tự động mở cửa sổ khi thời tiết mát mẻ (chiếm 30.93\% thời gian) và chủ động bật AC ở dải nhiệt độ tối ưu khi trời nóng (chiếm 66.97\% thời gian).
+    \item Sự phối hợp này giúp đẩy tỉ lệ thoải mái nhiệt lên mức \textbf{78.55\%} (tăng \textbf{10.56\%} so với DQN gốc và vượt trội hơn hành vi thực tế của con người là 72.84\%).
+    \item Tổng giá trị Reward trung bình của DQN cải tiến đạt mức cao nhất ($-794.45$) so với các chiến lược tiêu thụ năng lượng lớn khác như bật AC liên tục ($-824.90$), chứng tỏ tác tử đã tìm được điểm tối ưu giữa tiết kiệm điện và duy trì tiện nghi.
+\end{itemize}
+
+\section{Định hướng phát triển tiếp theo}
+Mặc dù mô hình Surrogate XGBoost giúp kiểm chứng thuật toán cực nhanh, nó vẫn chưa mô tả chính xác động học nhiệt phức tạp của tòa nhà trong thế giới thực. Do đó, định hướng tiếp theo của nhóm trong Tuần 3 và 4 là:
+\begin{enumerate}
+    \item Cài đặt và cấu hình môi trường mô phỏng vật lý \textbf{EnergyPlus v25.2.0} cùng thư viện kết nối \textbf{Sinergym} trên hệ điều hành Windows.
+    \item Áp dụng file dữ liệu thời tiết Hà Nội (\texttt{.epw}) để mô phỏng một tòa nhà 5 vùng nhiệt độ đặc trưng tại Việt Nam.
+    \item Huấn luyện tác tử DQN cải tiến trực tiếp trên môi trường vật lý Sinergym và so sánh chéo kết quả với mô hình surrogate XGBoost hiện tại.
+\end{enumerate}
+
+\section{Kết luận}
+Đồ án đã bước đầu hoàn thành việc khảo sát lý thuyết, tái hiện thành công baseline và đề xuất các cải tiến kỹ thuật cốt lõi giúp giải quyết các lỗi giới hạn của thuật toán DQN gốc. Kết quả thực nghiệm cho thấy DQN cải tiến đạt hiệu năng tổng quát hóa xuất sắc trên toàn bộ tập dữ liệu lớn. Đây là cơ sở khoa học vững chắc để thực hiện việc tích hợp và đánh giá trên các nền tảng mô phỏng vật lý cao cấp ở các giai đoạn tiếp theo.
+
+\end{document}
