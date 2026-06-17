@@ -421,6 +421,33 @@ Bảng \ref{tab:comparison_focused} tóm tắt các chỉ số hiệu năng trun
     \end{tabular}
 \end{table}
 
+\subsection{Phân tích so sánh khả năng tiết kiệm điện}
+Bên cạnh các chỉ số tiện nghi nhiệt tổng quát, nhóm tiến hành đánh giá riêng hiệu quả tiết kiệm điện của bộ điều khiển DQN trên kịch bản mùa nóng Thành phố Hồ Chí Minh. Ở thí nghiệm này, mức tiêu thụ điện được tính theo điện năng tích lũy của hệ HVAC trong toàn bộ chuỗi đánh giá, sau đó so sánh với các baseline vận hành cố định như đặt điều hòa ở $25^\circ\text{C}$, $26^\circ\text{C}$, $27^\circ\text{C}$, bộ điều khiển theo lịch và bộ điều khiển rule-based.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{artifacts/outputs/hcm_summer/cumulative_energy.png}
+    \caption{So sánh điện năng tích lũy của DQN với các chiến lược điều khiển nền trong kịch bản mùa nóng Thành phố Hồ Chí Minh.}
+    \label{fig:hcm_cumulative_energy}
+\end{figure}
+
+Hình \ref{fig:hcm_cumulative_energy} cho thấy đường năng lượng tích lũy của DQN nằm dưới baseline đặt cố định $25^\circ\text{C}$. Tổng điện năng của DQN đạt khoảng $1760.48$ kWh, trong khi baseline $25^\circ\text{C}$ tiêu thụ $1880.04$ kWh. Như vậy, mức tiết kiệm đạt:
+\begin{equation}
+    ES_{DQN/25^\circ C} = \frac{1880.04 - 1760.48}{1880.04} \times 100\% \approx 6.36\%.
+\end{equation}
+Con số $6.36\%$ không phải là mức tiết kiệm cực đại tuyệt đối, nhưng có ý nghĩa thực tế vì DQN vẫn duy trì chất lượng tiện nghi tốt. So với bộ điều khiển theo lịch, DQN tiết kiệm thêm khoảng $43.38$ kWh; so với baseline rule-based, DQN tiêu thụ nhiều hơn khoảng $60.38$ kWh nhưng đổi lại độ lệch PMV trung bình trong thời gian có người thấp hơn ($0.211$ so với $0.231$), tức là chiến lược DQN ưu tiên cân bằng giữa tiết kiệm điện và cảm giác nhiệt thay vì chỉ giảm điện năng.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.88\textwidth]{artifacts/outputs/hcm_summer/energy_comfort_tradeoff.png}
+    \caption{Quan hệ đánh đổi giữa điện năng tiêu thụ và chất lượng tiện nghi nhiệt của các bộ điều khiển.}
+    \label{fig:hcm_energy_comfort_tradeoff}
+\end{figure}
+
+Hình \ref{fig:hcm_energy_comfort_tradeoff} làm rõ bản chất đánh đổi năng lượng--tiện nghi. Baseline $27^\circ\text{C}$ có điện năng thấp nhất trong các cấu hình điều hòa cố định, tiết kiệm khoảng $27.37\%$ so với baseline $25^\circ\text{C}$, nhưng độ lệch PMV trung bình tăng lên $0.616$ và tỷ lệ vi phạm tiện nghi lên tới $80.24\%$. Điều này cho thấy tiết kiệm điện bằng cách nâng setpoint quá cao dễ làm giảm mạnh chất lượng môi trường trong phòng. Ngược lại, baseline $26^\circ\text{C}$ tiết kiệm $14.74\%$ nhưng vẫn có độ lệch PMV $0.362$, kém ổn định hơn DQN. DQN nằm ở vùng cân bằng hơn: tiết kiệm được $6.36\%$ so với $25^\circ\text{C}$, đồng thời giữ tỷ lệ vi phạm PMV bằng $0\%$ trong tập đánh giá.
+
+Từ hai hình trên có thể rút ra rằng đóng góp chính của DQN không nằm ở việc tắt điều hòa càng nhiều càng tốt, mà ở khả năng \textit{dịch chuyển điện năng} sang đúng thời điểm cần làm mát. Khi phòng không có người hoặc điều kiện ngoài trời thuận lợi, tác tử giảm hoặc tắt tải HVAC; khi có người và nhiệt độ tăng, tác tử chấp nhận dùng điện để giữ tiện nghi. Đây là điểm khác biệt quan trọng so với DQN gốc: DQN gốc đạt mức tiêu thụ điện gần như bằng 0 vì không bật AC, nhưng đây là ``tiết kiệm giả'' do đánh đổi trực tiếp bằng suy giảm tiện nghi. DQN cải tiến tạo ra mức tiết kiệm điện có thể sử dụng trong thực tế hơn, vì phần điện năng cắt giảm đến từ việc tránh làm lạnh dư thừa chứ không phải bỏ qua nhu cầu nhiệt của người dùng.
+
 \subsection{Khảo sát thực nghiệm huấn luyện lại cấu hình nguyên bản trên toàn bộ 1.763 ngày}
 Để làm rõ việc lỗi "0\% AC" là do thuật toán huấn luyện đơn ngày của repo gốc hay do cấu trúc hàm thưởng bị lỗi thiết lập, nhóm nghiên cứu đã tiến hành một thực nghiệm đối chứng. Chúng tôi cấu hình lại mã nguồn huấn luyện nhưng mở rộng cho phép lấy mẫu ngẫu nhiên ngày huấn luyện trong toàn bộ tập 1.763 ngày (tương tự như DQN Cải tiến), nhưng giữ nguyên các thiết lập gốc của bài báo: trọng số tiện nghi $w_c = 1.0$, không chuẩn hóa trạng thái đầu vào, và sử dụng mạng Q chính để tính toán Q mục tiêu ở bước tiếp theo.
 
@@ -532,4 +559,3 @@ D. B. Crawley, et al., "EnergyPlus: creating a new-generation building energy si
 \end{thebibliography}
 
 \end{document}
-

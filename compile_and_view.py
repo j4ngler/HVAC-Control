@@ -51,6 +51,8 @@ def compile_latex():
             "artifacts/outputs/whulx_reproduction/controller_comparison_metrics.png",
             "artifacts/outputs/whulx_reproduction/performance_comparison.png",
             "artifacts/outputs/whulx_reproduction/controller_total_reward.png",
+            "artifacts/outputs/hcm_summer/cumulative_energy.png",
+            "artifacts/outputs/hcm_summer/energy_comfort_tradeoff.png",
         ]
         for fig in whulx_figs:
             if os.path.exists(fig):
