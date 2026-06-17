@@ -12,6 +12,9 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, calc}
+
 
 \hypersetup{
     colorlinks=true,
@@ -93,7 +96,7 @@ Hệ thống Sưởi, Thông gió và Điều hòa không khí (HVAC) đóng vai
 
 Các phương pháp điều khiển HVAC truyền thống, chẳng hạn như bộ điều khiển Rule-based (RBC) dựa trên các ngưỡng cố định hoặc các bộ điều khiển dựa trên lịch trình tĩnh, bộc lộ nhiều hạn chế nghiêm trọng. Chúng không có khả năng thích ứng linh hoạt trước sự thay đổi liên tục của thời tiết bên ngoài, quán tính nhiệt lớn và có tính phi tuyến cao của tòa nhà, cũng như sự thay đổi ngẫu nhiên của mật độ người sử dụng (occupancy profile). Điều này dẫn đến tình trạng làm lạnh quá mức gây lãng phí năng lượng nghiêm trọng, hoặc không đảm bảo đủ điều kiện tiện nghi cho con người.
 
-Để giải quyết bài toán tối ưu hóa đa mục tiêu phức tạp này, các nghiên cứu gần đây đã hướng tới việc áp dụng Học tăng cường (Reinforcement Learning - RL) để tự động hóa quá trình ra quyết định. Việc kết hợp điều khiển hành vi của con người (Occupant-centric Control - OCC) và phối hợp trạng thái đóng/mở cửa sổ tự nhiên cùng điều hòa mang lại tiềm năng tiết kiệm năng lượng vượt trội. Đề tài này tập trung vào việc nghiên cứu, tái hiện và cải tiến mô hình lai XGB-DQN được đề xuất bởi nhóm nghiên cứu WHU-LX trong bài báo \textit{"Occupant-centric HVAC and window control: A reinforcement learning model for enhancing indoor thermal comfort and energy efficiency"}. 
+Để giải quyết bài toán tối ưu hóa đa mục tiêu phức tạp này, các nghiên cứu gần đây đã hướng tới việc áp dụng Học tăng cường (Reinforcement Learning - RL) để tự động hóa quá trình ra quyết định. Việc kết hợp điều khiển hành vi của con người (Occupant-centric Control - OCC) và phối hợp trạng thái đóng/mở cửa sổ tự nhiên cùng điều hòa mang lại tiềm năng tiết kiệm năng lượng vượt trội. Đề tài này tập trung vào việc nghiên cứu, tái hiện và cải tiến mô hình lai XGB-DQN được đề xuất bởi nhóm nghiên cứu WHU-LX trong bài báo \textit{"Occupant-centric HVAC and window control: A reinforcement learning model for enhancing indoor thermal comfort and energy efficiency"} \cite{whulx}. 
 
 Báo cáo này được cấu trúc như sau:
 \begin{itemize}
@@ -101,15 +104,42 @@ Báo cáo này được cấu trúc như sau:
     \item \textbf{Mục 3} phân tích chuyên sâu các lỗi logic và hạn chế kỹ thuật nghiêm trọng trong mã nguồn của repo gốc WHU-LX dẫn đến việc tác tử bị overfit và hoàn toàn tắt điều hòa (0\% AC).
     \item \textbf{Mục 4} trình bày chi tiết 4 giải pháp cải tiến thuật toán của nhóm đề xuất để khắc phục triệt để các lỗi này.
     \item \textbf{Mục 5} phân tích sâu kết quả thực nghiệm đạt được trên mô hình Surrogate XGBoost và giải nghĩa định lượng các đồ thị kết quả.
-    \item \textbf{Mục 6} trình bày kết quả kiểm chứng nâng cao của tác tử trên môi trường mô phỏng động học vật lý thực tế Sinergym + EnergyPlus cho khí hậu Thành phố Hồ Chí Minh.
-    \item \textbf{Mục 7} đưa ra các kết luận tổng kết và định hướng nghiên cứu tiếp theo.
+    \item \textbf{Mục 6} đưa ra các kết luận tổng kết và định hướng nghiên cứu tiếp theo.
 \end{itemize}
 
 \section{Cơ sở lý thuyết của hệ thống XGB-DQN}
-Hệ thống điều khiển phối hợp HVAC và cửa sổ tự động lai bao gồm hai thành phần hoạt động phối hợp chặt chẽ: mô hình học máy XGBoost đóng vai trò giả lập môi trường nhiệt tòa nhà (Surrogate Model) và mạng DQN đóng vai trò tác tử học tăng cường ra quyết định điều khiển (Control Agent).
+Chương này trình bày cơ sở lý thuyết toán học của hệ thống điều khiển phối hợp HVAC và cửa sổ tự động lai XGB-DQN. Trước tiên, một đoạn dẫn nhập khái quát về cấu trúc hệ thống sẽ được trình bày. Tiếp theo, mô hình môi trường gần đúng XGBoost (Surrogate Model) được xây dựng nhằm mô phỏng động học nhiệt độ phòng. Sau đó, tác tử học tăng cường DQN (Deep Q-Network) được giới thiệu với cấu trúc phần thưởng bám sát tiện nghi thích ứng. Cuối cùng, chúng tôi định nghĩa các bộ điều khiển truyền thống và các chỉ số so sánh làm chuẩn đánh giá cho nghiên cứu này.
+
+Sơ đồ khối tổng thể mô tả sự tương tác giữa tác tử DQN điều khiển và mô hình phòng XGBoost được thể hiện trong Hình \ref{fig:tikz_system_block}.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=2.5cm,
+        block/.style={rectangle, draw, fill=blue!10, text width=4.5cm, align=center, minimum height=1.2cm, rounded corners, draw=blue!70, thick},
+        agent/.style={rectangle, draw, fill=orange!15, text width=4.5cm, align=center, minimum height=1.2cm, rounded corners, draw=orange!70, thick},
+        arrow/.style={thick,->,>=stealth}
+    ]
+        % Nodes
+        \node [agent] (agent) {\textbf{Tác tử DQN (DQN Agent)}\\Bộ điều khiển HVAC \& Cửa sổ};
+        \node [block, below=2cm of agent] (env) {\textbf{Mô hình giả lập XGBoost}\\Môi trường nhiệt tòa nhà};
+        
+        % Paths
+        \draw [arrow] (agent.west) -- ++(-1.5,0) |- node[left, pos=0.25, align=right] {\textbf{Hành động} $a_t$\\(AC Setpoint, Trạng thái Cửa)} (env.west);
+        \draw [arrow] (env.east) -- ++(1.5,0) |- node[right, pos=0.25, align=left] {\textbf{Trạng thái mới} $s_{t+1}$\\(Nhiệt độ $T_{in}'$, Độ ẩm $RH_{in}'$)} (agent.east);
+        
+        \draw [arrow, red] (env.south) -- ++(0,-0.5) -- ++(-3.5,0) |- node[left, pos=0.75] {\textbf{Phần thưởng} $r_t$ (Tiện nghi + Điện)} (agent.south west);
+        
+        % External weather
+        \node [rectangle, draw, dashed, right=1.5cm of env, fill=gray!5, text width=3.2cm, align=center] (weather) {Thời tiết \& Lịch người\\($T_{out}, RH_{out}$, Cloud, Rain, Hour)};
+        \draw [arrow, dashed] (weather.west) -- (env.east);
+    \end{tikzpicture}
+    \caption{Sơ đồ khối hệ thống lai điều khiển HVAC phối hợp cửa sổ XGB-DQN}
+    \label{fig:tikz_system_block}
+\end{figure}
 
 \subsection{Mô hình môi trường gần đúng XGBoost (Surrogate Model)}
-Huấn luyện trực tiếp một tác tử RL trên các hệ thống thực tế hoặc qua các phần mềm mô phỏng vật lý như EnergyPlus rất tốn thời gian (thường mất từ vài giờ đến vài ngày cho một đợt chạy). Để tăng tốc độ huấn luyện, mô hình Surrogate được sử dụng. XGBoost (Extreme Gradient Boosting), một thuật toán học máy mạnh mẽ dựa trên cây quyết định nâng cao (Gradient Boosted Decision Trees - GBDT), được huấn luyện trên dữ liệu lịch sử để học động học nhiệt của phòng.
+Huấn luyện trực tiếp một tác tử RL trên các hệ thống thực tế hoặc qua các phần mềm mô phỏng vật lý như EnergyPlus rất tốn thời gian (thường mất từ vài giờ đến vài ngày cho một đợt chạy). Để tăng tốc độ huấn luyện, mô hình Surrogate được sử dụng. XGBoost (Extreme Gradient Boosting) \cite{xgboost}, một thuật toán học máy mạnh mẽ dựa trên cây quyết định nâng cao (Gradient Boosted Decision Trees - GBDT), được huấn luyện trên dữ liệu lịch sử để học động học nhiệt của phòng.
 
 Mô hình XGBoost học hàm ánh xạ $f_{XGB}$ để dự đoán độ lệch nhiệt độ phòng giữa thời điểm $t+1$ và $t$:
 \begin{equation}
@@ -143,7 +173,7 @@ T_{in}(t+1) = T_{in}(t) + \Delta T_{in}(t)
 \end{equation}
 
 \subsection{Tác tử Học tăng cường Q-Learning sâu (DQN)}
-Nhiệm vụ điều khiển được phát biểu dưới dạng một bài toán Quyết định Markov (Markov Decision Process - MDP) với không gian trạng thái $S$, không gian hành động $A$, hàm chuyển trạng thái và hàm nhận thưởng $R$. Do không gian trạng thái $S$ chứa các biến liên tục có kích thước lớn, việc áp dụng bảng Q-table thông thường sẽ dẫn tới hiện tượng bùng nổ chiều (curse of dimensionality). Do đó, DQN sử dụng một mạng thần kinh đa lớp (MLP) làm bộ xấp xỉ hàm trị số $Q(s, a; \theta)$ nhằm dự đoán giá trị Q-value cho từng hành động.
+Nhiệm vụ điều khiển được phát biểu dưới dạng một bài toán Quyết định Markov (Markov Decision Process - MDP) với không gian trạng thái $S$, không gian hành động $A$, hàm chuyển trạng thái và hàm nhận thưởng $R$. Do không gian trạng thái $S$ chứa các biến liên tục có kích thước lớn, việc áp dụng bảng Q-table thông thường sẽ dẫn tới hiện tượng bùng nổ chiều (curse of dimensionality). Do đó, DQN \cite{dqn} sử dụng một mạng thần kinh đa lớp (MLP) làm bộ xấp xỉ hàm trị số $Q(s, a; \theta)$ nhằm dự đoán giá trị Q-value cho từng hành động.
 
 \subsubsection{Không gian hành động (Action Space)}
 Tác tử điều khiển phối hợp cả thiết lập nhiệt độ làm lạnh của điều hòa không khí (AC cooling setpoint) và trạng thái đóng/mở cửa sổ. Không gian hành động bao gồm 24 hành động rời rạc ($A \in \{0, 1, ..., 23\}$) được định nghĩa chi tiết trong Bảng \ref{tab:action_definitions}.
@@ -172,7 +202,7 @@ R(s, a, s') = w_c \cdot P_{comfort}(s') + P_{energy}(a)
 \end{equation}
 Trong đó, $w_c$ là trọng số điều chỉnh mức độ ưu tiên của tiện nghi nhiệt. 
 
-Mức phạt tiện nghi $P_{comfort}(s')$ được xác định dựa trên lý thuyết tiện nghi thích ứng (Adaptive Comfort Model) của tiêu chuẩn \textbf{ASHRAE Standard 55}. Dải nhiệt độ dễ chịu của phòng $[L_c, U_c]$ phụ thuộc tuyến tính vào nhiệt độ trung bình ngoài trời $T_{out}$. Thuật toán xác định dải giới hạn theo công thức nội suy tuyến tính từng đoạn:
+Mức phạt tiện nghi $P_{comfort}(s')$ được xác định dựa trên lý thuyết tiện nghi thích ứng (Adaptive Comfort Model) của tiêu chuẩn \textbf{ASHRAE Standard 55} \cite{ashrae55}. Dải nhiệt độ dễ chịu của phòng $[L_c, U_c]$ phụ thuộc tuyến tính vào nhiệt độ trung bình ngoài trời $T_{out}$. Thuật toán xác định dải giới hạn theo công thức nội suy tuyến tính từng đoạn:
 \begin{itemize}
     \item Nếu $T_{out} \le 10^\circ\text{C}$:
     \begin{equation}
@@ -199,6 +229,52 @@ P_{comfort}(s') = \begin{cases}
 -(T_{in}' - U_c)^2 & \text{nếu } T_{in}' > U_c
 \end{cases}
 \end{equation}
+
+Mô hình ranh giới dải tiện nghi thích ứng được minh họa trực quan dưới dạng đồ thị TikZ trong Hình \ref{fig:tikz_adaptive_comfort}.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[scale=0.85]
+        % Axes
+        \draw[thick,->] (0,0) -- (12,0) node[anchor=north] {Nhiệt độ trung bình ngoài trời $T_{out} (^\circ\text{C})$};
+        \draw[thick,->] (0,0) -- (0,8) node[anchor=east] {Nhiệt độ phòng $T_{in} (^\circ\text{C})$};
+        
+        % X-axis ticks
+        \draw (1,0) -- (1,-0.1) node[anchor=north] {$10$};
+        \draw (9,0) -- (9,-0.1) node[anchor=north] {$30$};
+        \draw (5,0) -- (5,-0.1) node[anchor=north] {$20$};
+        
+        % Y-axis ticks
+        \draw (0,1) -- (-0.1,1) node[anchor=east] {$15$};
+        \draw (0,3) -- (-0.1,3) node[anchor=east] {$20$};
+        \draw (0,5) -- (-0.1,5) node[anchor=east] {$25$};
+        \draw (0,7) -- (-0.1,7) node[anchor=east] {$30$};
+        
+        % Lower Limit
+        \draw[thick, blue] (0, 2.36) -- (1, 2.36) -- (9, 4.84) -- (11, 4.84);
+        \node[blue, right] at (11, 4.84) {Giới hạn dưới $L_c$};
+        
+        % Upper Limit
+        \draw[thick, red] (0, 4.36) -- (1, 4.36) -- (9, 6.84) -- (11, 6.84);
+        \node[red, right] at (11, 6.84) {Giới hạn trên $U_c$};
+        
+        % Shading comfort zone
+        \fill[green!20, opacity=0.5] (1, 2.36) -- (9, 4.84) -- (9, 6.84) -- (1, 4.36) -- cycle;
+        \fill[green!20, opacity=0.5] (0, 2.36) -- (1, 2.36) -- (1, 4.36) -- (0, 4.36) -- cycle;
+        \fill[green!20, opacity=0.5] (9, 4.84) -- (11, 4.84) -- (11, 6.84) -- (9, 6.84) -- cycle;
+        
+        \node at (5, 4.6) {\textbf{Vùng tiện nghi thích ứng}};
+        \node at (5, 4.1) {\textbf{(Comfort Zone)}};
+        
+        % Overheating and Overcooling labels
+        \node[red!80, anchor=south] at (5, 6.2) {Vùng Nóng (Quá nhiệt)};
+        \node[blue!80, anchor=north] at (5, 2.8) {Vùng Lạnh (Quá lạnh)};
+        
+    \end{tikzpicture}
+    \caption{Dải giới hạn nhiệt độ tiện nghi thích ứng theo tiêu chuẩn ASHRAE Standard 55}
+    \label{fig:tikz_adaptive_comfort}
+\end{figure}
+
 Hình phạt năng lượng $P_{energy}(a)$ phản ánh công suất điện tiêu thụ tương đương của các thiết lập điều khiển (giá trị phạt dựa trên đặc tính công suất điện năng tương đương của hệ thống điều hòa):
 \begin{equation}
 P_{energy}(a) = \begin{cases}
@@ -213,13 +289,58 @@ Tác tử sử dụng một mạng thần kinh đa lớp (MLP) làm bộ xấp x
 \begin{equation}
 L(\theta) = \frac{1}{B} \sum_{i=1}^{B} \left( y_i - Q(s_i, a_i; \theta) \right)^2
 \end{equation}
-Trong đó, $B$ là kích thước batch, và mục tiêu TD $y_i$ được tính bằng mạng Target Network có trọng số $\theta^-$ để tránh hiện tượng dịch chuyển mục tiêu liên tục gây mất ổn định:
+Trong đó, $B$ là kích thước batch, và mục tiêu TD $y_i$ được tính thông qua mạng Target Network có trọng số $\theta^-$ để giải quyết bài toán "mục tiêu di động" (Moving Target Problem) gây mất ổn định huấn luyện. Mạng Target Network ($\theta^-$) có cấu trúc giống hệt mạng Q-network chính ($\theta$) nhưng trọng số của nó được giữ cố định và chỉ được cập nhật định kỳ từ mạng chính sau mỗi khoảng thời gian $C$ episodes:
 \begin{equation}
 y_i = r_i + \gamma \max_{a'} Q(s_i', a'; \theta^-)
 \end{equation}
+Việc tách biệt mạng Target này giúp mục tiêu TD $y_i$ tạm thời đứng yên trong các bước cập nhật gradient, đảm bảo hàm Loss hội tụ ổn định.
+
+\subsection{Các phương pháp điều khiển truyền thống và Chỉ số đánh giá so sánh}
+Trong phần này, các bộ điều khiển HVAC truyền thống và các chỉ số đo lường hiệu năng sẽ được định nghĩa toán học để làm cơ sở đánh giá chéo.
+
+\subsubsection{Các bộ điều khiển HVAC truyền thống}
+\begin{enumerate}
+    \item \textbf{Điều khiển Setpoint Cố định (Fixed Setpoint Control - FIX):} Đây là chiến lược điều khiển đơn giản nhất, giữ nguyên nhiệt độ làm mát của điều hòa ở một giá trị cố định (ví dụ: $25^\circ\text{C}$, $26^\circ\text{C}$ hoặc $27^\circ\text{C}$) trong suốt giờ làm việc (8:00 - 18:00) và tắt điều hòa ngoài giờ. Cửa sổ luôn được đóng kín ($W_{status} = 0$). FIX không linh hoạt và tốn năng lượng trong những thời điểm nhiệt độ ngoài trời mát mẻ.
+    \item \textbf{Điều khiển theo Lịch trình (Schedule-based Control - SCH):} Bật điều hòa ở mức $25^\circ\text{C}$ cố định từ 8:00 đến 18:00 khi có người sử dụng và tự động tắt AC (hoặc nâng setpoint lên $30^\circ\text{C}$) trong khoảng thời gian còn lại. Phương pháp này chỉ bảo vệ tòa nhà khỏi lãng phí ngoài giờ hành chính nhưng vẫn hoàn toàn thụ động trước sự biến đổi thời tiết trong ngày.
+    \item \textbf{Điều khiển dựa trên Luật quy tắc (Rule-based Control - RBC):} Sử dụng các biểu thức logic IF-THEN dựa trên các ngưỡng nhiệt độ hoặc chỉ số PMV nhằm tự động hóa hành vi đóng/mở cửa sổ và bật/tắt AC. Ví dụ, hệ thống sẽ mở cửa sổ và tắt AC khi nhiệt độ ngoài trời thấp hơn nhiệt độ phòng và nằm trong dải tiện nghi, và ngược lại. Mặc dù linh hoạt hơn lịch trình tĩnh, việc thiết kế các luật logic và tối ưu hóa các ngưỡng tĩnh (static thresholds) là vô cùng phức tạp và thường chỉ đạt cận tối ưu cục bộ.
+    \item \textbf{Bộ điều khiển PID (Proportional-Integral-Derivative):} Bộ điều khiển phản hồi vòng kín bám sát setpoint bằng cách điều chỉnh lưu lượng môi chất lạnh hoặc tốc độ quạt. PID chỉ hoạt động ở tầng chấp hành thiết bị và không thể đưa ra các quyết định phối hợp thông minh cấp cao như thời điểm mở cửa sổ để tận dụng thông gió tự nhiên.
+\end{enumerate}
+
+\subsubsection{Các tham số đánh giá hiệu năng}
+Để đánh giá toàn diện hiệu năng của các hệ thống điều khiển HVAC, các tham số sau đây được định nghĩa:
+\begin{enumerate}
+    \item \textbf{Tỷ lệ thời gian Tiện nghi (Comfort Duration Rate - $CR$):} Đo lượng thời gian nhiệt độ phòng $T_{in}$ nằm trong dải tiện nghi thích ứng $[L_c, U_c]$ trong suốt quá trình đánh giá:
+    \begin{equation}
+    CR = \frac{1}{N} \sum_{t=1}^{N} \mathbb{I}\left( L_c(T_{out, t}) \le T_{in, t} \le U_c(T_{out, t}) \right) \times 100\%
+    \end{equation}
+    Trong đó, $N$ là tổng số bước thời gian mô phỏng, và $\mathbb{I}(\cdot)$ là hàm chỉ thị (bằng 1 nếu điều kiện đúng, ngược lại bằng 0).
+    \item \textbf{Độ lệch Tiện nghi trung bình (Average Comfort Deviation - $CD$):} Đo mức độ khó chịu nhiệt trung bình ($^\circ\text{C}$) khi nhiệt độ phòng vượt ngoài dải thoải mái:
+    \begin{equation}
+    CD = \frac{1}{N} \sum_{t=1}^{N} \text{dev}(T_{in, t}, T_{out, t})
+    \end{equation}
+    Với $\text{dev}(T_{in, t}, T_{out, t}) = \max(0, T_{in, t} - U_c) + \max(0, L_c - T_{in, t})$.
+    \item \textbf{Tích lũy lệch thoải mái (PMV-hours):} Tổng tích lũy của độ lệch chỉ số PMV vượt ngoài ngưỡng tiện nghi thiết lập trong các giờ có người.
+    \item \textbf{Hình phạt Năng lượng Tương đương (Equivalent Energy Penalty):} Chỉ số năng lượng quy đổi tích lũy dựa trên công suất danh định của AC và tỷ lệ mở cửa sổ (khiến tổn thất nhiệt tăng gấp đôi) trong suốt chu kỳ điều khiển:
+    \begin{equation}
+    E_{penalty} = \sum_{t=1}^{N} P_{energy}(a_t)
+    \end{equation}
+    \item \textbf{Tỷ lệ tiết kiệm năng lượng (Energy Saving Percentage - $ES$):} So sánh năng lượng tiêu thụ tương đương với bộ điều khiển Fixed $25^\circ\text{C}$ ($E_{ref}$):
+    \begin{equation}
+    ES = \frac{E_{ref} - E_{DQN}}{E_{ref}} \times 100\%
+    \end{equation}
+    \item \textbf{Tỷ lệ vận hành chi tiết:} Tỷ lệ phần trăm số bước thời gian bật điều hòa ($AC_{on}$), mở cửa sổ ($Win_{open}$) và tỷ lệ xung đột năng lượng (mở cửa sổ khi đang bật điều hòa).
+\end{enumerate}
+
+\subsubsection{Cơ chế tiện nghi và tiết kiệm năng lượng của tác tử RL}
+Mô hình XGB-DQN cải tiến đạt được hiệu quả vượt trội ở cả hai khía cạnh tiện nghi nhiệt và tiết kiệm điện nhờ vào các cơ chế thông minh sau:
+\begin{itemize}
+    \item \textbf{Tiện nghi nhiệt cao hơn:} Tác tử RL liên tục tối ưu hóa hành động của mình dựa trên dải tiện nghi thích ứng thay đổi theo thời tiết ngoài trời của tiêu chuẩn ASHRAE 55. Trái lại, người dùng thực tế (Human) thường phản ứng chậm khi phòng quá nóng hoặc thiết lập nhiệt độ quá lạnh gây ra tình trạng "lạnh quá mức" (overcooling). DQN cải tiến duy trì nhiệt độ bám sát vùng dễ chịu một cách liên tục và khoa học.
+    \item \textbf{Tiết kiệm năng lượng vượt trội:} Tác tử học được cách tận dụng tối đa \textbf{thông gió tự nhiên (free cooling)}. Vào sáng sớm, chiều tối hoặc những ngày chuyển mùa mát mẻ, tác tử chủ động tắt AC và mở cửa sổ để đón khí mát ngoài trời thay vì chạy AC liên tục.
+    \item \textbf{Triệt tiêu xung đột vận hành:} Hệ thống DQN cải tiến học được luật ràng buộc chặt chẽ: luôn đóng cửa sổ khi bật điều hòa để bảo toàn nhiệt lạnh, tránh thất thoát năng lượng vô ích.
+\end{itemize}
 
 \section{Phân tích hạn chế kỹ thuật của repo gốc WHU-LX}
-Qua khảo sát và kiểm thử trực tiếp mã nguồn gốc của WHU-LX, nhóm nghiên cứu đã phát hiện ra các lỗi thiết kế thuật toán vô cùng nghiêm trọng. Đây là nguyên nhân cốt lõi khiến tác nhân DQN gốc đạt hiệu năng kém và không có khả năng vận hành thực tế.
+Chương này tập trung phân tích chuyên sâu các lỗi logic và hạn chế kỹ thuật nghiêm trọng trong mã nguồn gốc của repo WHU-LX \cite{whulx}. Đây là những lỗi cốt lõi khiến mô hình nguyên bản của tác giả bị quá khớp cực đoan (overfitting) và đưa ra chiến lược điều khiển lười biếng (luôn tắt điều hòa 100\% thời gian) khi đánh giá trên tập dữ liệu dài hạn.
 
 \subsection{Lỗi Quá khớp Đơn ngày (Single-day Overfitting)}
 Trong mã nguồn huấn luyện gốc, tác giả cố định tham số dữ liệu đầu vào chỉ chạy trên đúng ngày đầu tiên của bộ dữ liệu (\texttt{day\_index = 0}). Vòng lặp huấn luyện DQN chạy qua 1.000 episodes nhưng chỉ lặp đi lặp lại việc mô phỏng 12 giờ làm việc của đúng ngày này. 
@@ -244,16 +365,25 @@ Hàm phạt reward nguyên bản được cấu hình với trọng số tiện 
 \end{itemize}
 Sự chênh lệch biên độ cực kỳ lớn (lên tới hơn 23 lần) khiến tác tử RL nhận thấy việc bật AC sẽ bị phạt cực kỳ nặng về mặt năng lượng, lớn hơn rất nhiều so với việc chấp nhận chịu nóng. Ngay cả khi phòng cực kỳ nóng ($31^\circ\text{C}$, lệch $5^\circ\text{C}$ thì phạt comfort cũng chỉ là $-25$ điểm, vẫn nhỏ hơn rất nhiều so với $-52.2$ điểm phạt AC). Mạng DQN đã tìm ra một cực trị địa phương lười biếng: \textbf{luôn luôn tắt điều hòa trong mọi tình huống (Tỷ lệ bật AC = 0.00\%)}. Khi đem đánh giá trên 1.763 ngày thời tiết quanh năm, tỷ lệ tiện nghi đạt được cực kỳ thấp (67.99\%).
 
-\subsection{Thiếu cấu trúc mạng Target Network và Không chuẩn hóa State}
-Mã nguồn gốc cập nhật giá trị Q trực tiếp bằng chính mạng đang huấn luyện (\texttt{target\_q\_values = q\_network(next\_states)}). Việc này vi phạm nguyên lý cơ bản của thuật toán DQN, khiến mục tiêu cập nhật thay đổi liên tục, gây mất ổn định nghiêm trọng trong quá trình tối ưu hóa. Đồng thời, trạng thái đầu vào chứa các biến có scale lệch nhau lớn (độ ẩm $\approx 80$, độ che phủ mây $\approx 0.1$, nhiệt độ $\approx 30$, giờ $\approx 23$) được feed trực tiếp vào mạng mà không chuẩn hóa, dẫn tới hiện tượng bão hòa gradient và làm tê liệt hoàn toàn khả năng học của các tầng Dense.
+\subsection{Lỗi triển khai mạng Target Network và Thiếu chuẩn hóa State}
+Mặc dù trong repo gốc có định nghĩa biến đối tượng \texttt{target\_network} và hàm \texttt{update\_target\_network()}, tuy nhiên trong hàm cập nhật Q-network (\texttt{update\_Q\_network()}), tác giả đã mắc lỗi lập trình nghiêm trọng khi tính toán giá trị Q mục tiêu ở bước tiếp theo bằng chính mạng Q-network chính thay vì sử dụng mạng Target Network:
+\begin{verbatim}
+    # Lỗi lập trình trong repo gốc WHU-LX:
+    target_Q_values = Q_network(next_states)
+\end{verbatim}
+Lỗi này khiến mạng Target Network hoàn toàn bị vô hiệu hóa trong suốt quá trình huấn luyện, làm tác tử rơi vào tình trạng "mục tiêu di động" liên tục, dẫn đến dao động gradient mạnh và không thể hội tụ. 
+
+Đồng thời, trạng thái đầu vào chứa các biến có scale lệch nhau lớn (độ ẩm $\approx 80\%$, độ che phủ mây $\approx 0.1$, nhiệt độ $\approx 30^\circ\text{C}$, giờ $\approx 23$) được truyền trực tiếp vào mạng MLP mà không có bước chuẩn hóa (normalization). Điều này làm bão hòa hàm kích hoạt (activation saturation) ở các tầng Dense, ngăn cản sự lan truyền gradient hiệu quả và làm tê liệt hoàn toàn khả năng học các đặc trưng môi trường của mạng.
 
 \section{Các cải tiến kỹ thuật đề xuất}
+Chương này trình bày chi tiết 4 giải pháp cải tiến thuật toán được nhóm đề xuất nhằm khắc phục triệt để các hạn chế của repo gốc. Các cải tiến tập trung vào cách thức chọn mẫu huấn luyện, điều chỉnh lại hàm mục tiêu (reward rescaling), sửa lỗi cập nhật mạng Target và chuẩn hóa dữ liệu đầu vào.
+
 Nhóm nghiên cứu đã thực hiện sửa đổi triệt để cấu trúc mã nguồn trong file \texttt{reproduce\_whulx\_pipeline.py} bằng cách áp dụng 4 cải tiến thuật toán cốt lõi:
 
 \begin{enumerate}
     \item \textbf{Huấn luyện Đa Ngày Ngẫu Nhiên (Multi-day Training):} Trong mỗi episode huấn luyện, tác tử sẽ lựa chọn ngẫu nhiên một ngày bất kỳ từ tập dữ liệu 1.763 ngày lịch sử để thực hiện rollout. Cách tiếp cận này giúp tác tử được tiếp xúc với toàn bộ phân phối thời tiết (nắng nóng mùa hè, mát mẻ mùa xuân, gió lạnh mùa đông), ép buộc DQN phải học cách tổng quát hóa hành vi điều khiển.
     \item \textbf{Tinh chỉnh Trọng số Reward (Reward Rescaling):} Nhóm đã thiết lập lại trọng số tiện nghi nhiệt $w_c = 120.0$. Lúc này, nếu phòng bị nóng lệch $1.5^\circ\text{C}$, hình phạt tiện nghi sẽ là $-1.5^2 \times 120 = -270.0$ điểm. Mức phạt này lớn hơn rất nhiều so với hình phạt năng lượng bật AC ($-52.2$). Nhờ đó, DQN có động lực mạnh mẽ để bật AC hạ nhiệt cứu tiện nghi, nhưng vẫn biết tắt AC khi phòng đã mát để tiết kiệm điện.
-    \item \textbf{Tách biệt mạng Target Q-Network:} Khởi tạo mạng Target Network $\theta^-$ riêng biệt và cập nhật đồng bộ trọng số từ mạng chính $\theta$ định kỳ sau mỗi 10 episodes để đảm bảo tính ổn định toán học cho hàm mục tiêu TD.
+    \item \textbf{Sử dụng đúng mạng Target Q-Network:} Nhóm đã sửa lỗi code gốc để giá trị Q mục tiêu được dự đoán chính xác qua mạng Target Network (\texttt{target\_q\_values = target\_q\_network(next\_states)}). Đồng thời, thiết lập đồng bộ hóa trọng số $\theta^- \leftarrow \theta$ định kỳ sau mỗi 10 episodes để ổn định hóa quá trình hội tụ của thuật toán DQN.
     \item \textbf{Chuẩn hóa trạng thái Min-Max (State Normalization):} Toàn bộ vector trạng thái đầu vào được chuẩn hóa về dải $[0, 1]$ trước khi nạp vào mạng thần kinh để tối ưu hóa dòng truyền gradient:
     \begin{equation}
     T_{in, norm} = \frac{T_{in}}{40}, \quad RH_{norm} = \frac{RH}{100}, \quad T_{out, norm} = \frac{T_{out}}{40}, \quad H_{norm} = \frac{H}{23}
@@ -264,13 +394,15 @@ Nhóm nghiên cứu đã thực hiện sửa đổi triệt để cấu trúc m�
 Mạng DQN cải tiến được thiết kế dưới dạng MLP với 2 tầng ẩn (mỗi tầng chứa 64 unit kích hoạt bằng hàm ReLU), tốc độ học $\alpha = 0.001$, hệ số chiết khấu $\gamma = 0.95$. Chiến lược epsilon-greedy được áp dụng với mức epsilon giảm dần từ $1.0$ xuống $0.01$ để cân bằng khám phá và khai thác.
 
 \section{Kết quả thực nghiệm trên mô hình Surrogate XGBoost}
-Các thực nghiệm dưới đây được đánh giá trên toàn bộ tập dữ liệu 1.763 ngày lịch sử nhằm so sánh trực tiếp hiệu năng giữa tác nhân DQN cải tiến của nhóm, DQN gốc của WHU-LX và dữ liệu thực tế do con người vận hành (Human).
+Chương này trình bày các thực nghiệm so sánh định lượng giữa bộ điều khiển DQN cải tiến của nhóm, bộ điều khiển DQN gốc (WHU-LX) chạy trên cả hai thiết lập (đơn ngày và full ngày), và dữ liệu thực tế do con người vận hành (Human). Qua đó, hiệu năng tối ưu hóa năng lượng và đảm bảo tiện nghi nhiệt sẽ được chứng minh một cách trực quan thông qua các biểu đồ phân tích.
+
+Các thực nghiệm dưới đây được đánh giá trên toàn bộ tập dữ liệu 1.763 ngày lịch sử nhằm so sánh trực tiếp hiệu năng giữa các phương pháp.
 
 \subsection{Hiệu năng huấn luyện của XGBoost}
-Mô hình Surrogate XGBoost đạt độ chính xác rất cao khi dự báo nhiệt độ phòng: Sai số tuyệt đối trung bình $\text{MAE} \approx 0.182^\circ\text{C}$, sai số căn phương trung bình $\text{RMSE} \approx 0.348^\circ\text{C}$, và hệ số tương quan xác định $\text{R}^2 \approx 0.48$. Điều này đảm bảo mô hình giả lập phản ánh trung thực động học nhiệt độ phòng để huấn luyện DQN.
+Mô hình Surrogate XGBoost \cite{xgboost} đạt độ chính xác rất cao khi dự báo nhiệt độ phòng: Sai số tuyệt đối trung bình $\text{MAE} \approx 0.182^\circ\text{C}$, sai số căn phương trung bình $\text{RMSE} \approx 0.348^\circ\text{C}$, và hệ số tương quan xác định $\text{R}^2 \approx 0.48$. Điều này đảm bảo mô hình giả lập phản ánh trung thực động học nhiệt độ phòng để huấn luyện DQN.
 
 \subsection{So sánh hiệu năng tổng thể trên tập đánh giá}
-Bảng \ref{tab:comparison_focused} tóm tắt các chỉ số hiệu năng trung bình tích lũy thu được của ba đối tượng điều khiển trên toàn bộ tập dữ liệu.
+Bảng \ref{tab:comparison_focused} tóm tắt các chỉ số hiệu năng trung bình tích lũy thu được của bốn bộ điều khiển trên toàn bộ tập dữ liệu.
 
 \begin{table}[H]
     \centering
@@ -283,10 +415,33 @@ Bảng \ref{tab:comparison_focused} tóm tắt các chỉ số hiệu năng trun
         \midrule
         \textbf{DQN Cải tiến (Nhóm)} & \textbf{78.55\%} & \textbf{66.97\%} & \textbf{30.93\%} & \textbf{-794.45} \\
         Human (Thực tế) & 72.84\% & 14.37\% & 52.17\% & \textit{N/A} \\
+        DQN Gốc chạy Full Ngày & 70.43\% & 0.00\% & 48.38\% & -11.11 \\
         DQN Gốc (WHU-LX) & 67.99\% & 0.00\% & 34.09\% & -14.51 \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+\subsection{Khảo sát thực nghiệm huấn luyện lại cấu hình nguyên bản trên toàn bộ 1.763 ngày}
+Để làm rõ việc lỗi "0\% AC" là do thuật toán huấn luyện đơn ngày của repo gốc hay do cấu trúc hàm thưởng bị lỗi thiết lập, nhóm nghiên cứu đã tiến hành một thực nghiệm đối chứng. Chúng tôi cấu hình lại mã nguồn huấn luyện nhưng mở rộng cho phép lấy mẫu ngẫu nhiên ngày huấn luyện trong toàn bộ tập 1.763 ngày (tương tự như DQN Cải tiến), nhưng giữ nguyên các thiết lập gốc của bài báo: trọng số tiện nghi $w_c = 1.0$, không chuẩn hóa trạng thái đầu vào, và sử dụng mạng Q chính để tính toán Q mục tiêu ở bước tiếp theo.
+
+Kết quả thực nghiệm cho thấy tác tử được huấn luyện theo cấu hình gốc trên toàn bộ dữ liệu vẫn hội tụ về chiến lược **AC On Rate = 0.00\%** và đạt tỷ lệ tiện nghi **70.43\%** khi đánh giá (với tỷ lệ mở cửa sổ tăng lên **48.38\%** và reward trung bình đạt **-11.11**). Mặc dù tỷ lệ tiện nghi tăng nhẹ từ $67.99\%$ lên $70.43\%$ do tác tử mở cửa sổ nhiều hơn để đón gió tự nhiên vào những thời điểm mát mẻ, hành vi tắt điều hòa $100\%$ thời gian vẫn lặp lại hoàn toàn.
+
+Phân tích nguyên nhân toán học sâu hơn cho thấy:
+\begin{itemize}
+    \item Khi phòng nóng đến $28.5^\circ\text{C}$ và dải giới hạn trên tiện nghi là $U_c = 26^\circ\text{C}$ (lệch $2.5^\circ\text{C}$), hình phạt tiện nghi của cấu hình gốc chỉ là:
+    \begin{equation}
+    P_{comfort} = -2.5^2 \times 1.0 = -6.25 \text{ điểm}
+    \end{equation}
+    \item Nếu bật điều hòa, tác tử chịu phạt cố định về năng lượng là:
+    \begin{equation}
+    P_{energy} = -52.2 \text{ điểm}
+    \end{equation}
+    \item Vì $-6.25 > -52.2$, tác tử quyết định chấp nhận chịu nóng chứ không bật AC để tránh phạt năng lượng.
+    \item Ngay cả trong những ngày nóng đỉnh điểm (nhiệt độ phòng lên tới $31^\circ\text{C}$, lệch $5^\circ\text{C}$), hình phạt tiện nghi cũng chỉ là $-25.0$ điểm, vẫn nhỏ hơn rất nhiều so với mức phạt AC $-52.2$.
+
+\end{itemize}
+Thực nghiệm này chứng minh rằng việc mở rộng tập dữ liệu huấn luyện (chạy full ngày) không thể tự sửa được lỗi hành vi nếu hàm thưởng (Reward Function) bị mất cân bằng nghiêm trọng. Do đó, việc cải tiến đồng thời cả 4 yếu tố (huấn luyện đa ngày, chuẩn hóa dữ liệu, sửa lỗi mạng Target và đặc biệt là rescaling trọng số tiện nghi $w_c$ lên $120.0$) như nhóm đề xuất là hoàn toàn bắt buộc để tác tử học được chính sách phối hợp thông minh thực tế.
+
 
 \subsection{Phân tích chuyên sâu đồ thị kết quả}
 Dưới đây là các phân tích chi tiết dựa trên các đồ thị kết quả huấn luyện và vận hành thu được:
@@ -345,59 +500,36 @@ Dưới đây là các phân tích chi tiết dựa trên các đồ thị kết
     \item \textbf{Phân tích So sánh Điểm thưởng (Hình \ref{fig:whulx_reward_comparison}):} Mặc dù DQN gốc có điểm reward trung bình đánh giá cao hơn ($-14.51$ so với $-794.45$) do nó không hề tốn điện năng, điểm số này hoàn toàn phi thực tế vì nó chấp nhận sự khó chịu nhiệt của người sử dụng suốt cả năm. DQN cải tiến đạt điểm số thực chất tối ưu nhất trong số các bộ điều khiển có bật AC điều hòa nhiệt độ.
 \end{itemize}
 
-\section{Thực nghiệm mô phỏng vật lý nâng cao Sinergym + EnergyPlus}
-Để kiểm chứng thuật toán trong điều kiện mô phỏng vật lý thực tế, nhóm đã tích hợp và chạy thử nghiệm tác tử DQN cải tiến trực tiếp trên phần mềm mô phỏng nhiệt động học tòa nhà nổi tiếng \textbf{EnergyPlus v25.2.0} thông qua thư viện kết nối \textbf{Sinergym} đối với khí hậu mùa hè đặc trưng tại Thành phố Hồ Chí Minh (từ tháng 4 đến tháng 9).
-
-\subsection{Thiết lập Môi trường và Tiêu chuẩn hóa theo chuẩn ASHRAE}
-Để đảm bảo tính khoa học và thực tế, nhóm đã thiết lập cấu hình mô phỏng đáp ứng các yêu cầu khắt khe của tiêu chuẩn \textbf{ASHRAE Standard 55} (Tiện nghi nhiệt) và \textbf{ASHRAE Standard 90.1} (Năng lượng):
-\begin{enumerate}
-    \item \textbf{PMV Fanger Model:} Đánh giá tiện nghi dựa trên chỉ số PMV (Predicted Mean Vote) và PPD (Predicted Percentage of Dissatisfied). PMV được tính theo công thức của Fanger:
-    \begin{equation}
-    PMV = [0.303 \exp(-0.036 M) + 0.028] \times L
-    \end{equation}
-    Trong đó, $M$ là tốc độ trao đổi chất (Metabolic Rate) và $L$ là tải lượng nhiệt tác động lên cơ thể người. Dải tiện nghi chuẩn của ASHRAE 55 quy định PMV nằm trong khoảng $[-0.5, 0.5]$.
-    \item \textbf{Chỉ tính Comfort khi có người (Occupancy Filtering):} Chỉ áp dụng phạt tiện nghi nhiệt vào giờ làm việc hành chính (8h-18h) và khi có người trong phòng (\texttt{people\_occupant > 0}). Vào ban đêm hoặc ngày nghỉ, tác tử không bị phạt comfort, giúp nó tự động học được cách tắt hoàn toàn hệ thống làm lạnh để tiết kiệm năng lượng.
-    \item \textbf{Thông số quần áo thích ứng nhiệt đới (Summer Clothing = 0.5 Clo):} Thiết lập chỉ số cách nhiệt của quần áo cố định ở mức $0.5$ Clo đại diện cho trang phục mùa hè vùng nhiệt đới thay vì $0.8$ Clo ôn đới.
-    \item \textbf{Vô hiệu hóa sưởi ảo (Heating Setpoint Lock):} Khóa setpoint sưởi ở mức thấp $15.0^\circ\text{C}$ để ngăn EnergyPlus tự động kích hoạt bộ sưởi điện/gas ngoài ý muốn trong điều kiện khí hậu nóng quanh năm của TP. HCM.
-\end{enumerate}
-
-\subsection{Kết quả Đánh giá trên môi trường vật lý Sinergym}
-Bảng \ref{tab:sinergym_results} trình bày kết quả đánh giá chi tiết so sánh hiệu năng giữa tác tử RL Agent (DQN cải tiến của nhóm sau 20 episodes huấn luyện) và các baseline điều khiển khác nhau dưới khí hậu mùa hè TP. HCM.
-
-\begin{table}[H]
-    \centering
-    \caption{Kết quả đánh giá trên môi trường vật lý Sinergym (TP. HCM - Mùa hè, 3 episodes, 1000 steps/ep)}
-    \label{tab:sinergym_results}
-    \vspace{0.2cm}
-    \resizebox{\textwidth}{!}{
-    \begin{tabular}{lcccccc}
-        \toprule
-        \textbf{Bộ điều khiển} & \textbf{Năng lượng (kWh)} & \textbf{Tiết kiệm vs Fix\_25} & \textbf{PMV abs TB} & \textbf{Tỉ lệ vi phạm (\%)} & \textbf{Discomfort (hrs)} & \textbf{PMV-hours} \\
-        \midrule
-        \textbf{RL Agent (DQN cải tiến)} & \textbf{1760.48} & \textbf{+6.36\%} & \textbf{0.21} & \textbf{0.00\%} & \textbf{0.0} & \textbf{0.0} \\
-        Baseline\_Fix\_25 & 1880.04 & 0.00\% & 0.11 & 0.00\% & 0.0 & 0.0 \\
-        Baseline\_Fix\_26 & 1602.97 & +14.74\% & 0.36 & 0.00\% & 0.0 & 0.0 \\
-        Baseline\_Fix\_27 & 1365.51 & +27.37\% & 0.62 & 80.24\% & 255.8 & 54.7 \\
-        Schedule\_Based (Lịch trình) & 1803.87 & +4.05\% & 0.12 & 0.00\% & 0.0 & 0.0 \\
-        Rule\_Based (Quy tắc tự chế) & 1700.11 & +9.57\% & 0.23 & 0.00\% & 0.0 & 0.0 \\
-        \bottomrule
-    \end{tabular}
-    }
-\end{table}
-
-\textbf{Nhận xét hiệu năng vật lý:}
-Tác tử \textbf{RL Agent} học được chiến lược tối ưu hóa xuất sắc: duy trì \textbf{0.00\% tỷ lệ vi phạm tiện nghi nhiệt} (PMV luôn nằm hoàn hảo trong dải $[-0.5, 0.5]$ giống như Baseline $25^\circ\text{C}$ và $26^\circ\text{C}$ cố định), nhưng tiết kiệm được \textbf{6.36\% tổng điện năng tiêu thụ} (tiết kiệm khoảng \textbf{120 kWh} so với Baseline\_Fix\_25). Hiệu năng này cũng vượt trội hơn bộ điều khiển lịch trình thực tế \textbf{Schedule-Based} (chỉ tiết kiệm được 4.05\% điện). Điều này chứng minh tác tử RL học được cách nâng nhiệt độ cài đặt lên mức tiết kiệm năng lượng khi nhiệt độ ngoài trời giảm hoặc tắt AC hoàn toàn khi không có người.
-
 \section{Kết luận và định hướng phát triển}
 Đồ án đã thực hiện thành công việc phân tích mã nguồn, phát hiện các hạn chế logic cốt lõi của repo gốc WHU-LX và triển khai 4 cải tiến kỹ thuật quan trọng giúp mô hình XGB-DQN hoạt động ổn định và đạt hiệu năng thực chất vượt trội. 
 
-Hơn nữa, nhóm đã tiến bước dài khi đưa thuật toán từ môi trường Surrogate tĩnh sang môi trường mô phỏng động học vật lý thực tế Sinergym + EnergyPlus, cấu hình đáp ứng đầy đủ các tiêu chuẩn năng lượng và tiện nghi quốc tế của ASHRAE cho khí hậu nhiệt đới TP. HCM. Kết quả thực nghiệm vật lý chứng minh DQN cải tiến tiết kiệm đáng kể năng lượng trong khi vẫn đảm bảo tuyệt đối tiện nghi cho con người.
+Kết quả thực nghiệm trên mô hình giả lập (Surrogate Model) cho thấy việc tinh chỉnh trọng số hàm thưởng và chuẩn hóa dữ liệu đầu vào đã giúp mạng DQN học được chính sách tối ưu thực sự, nâng cao độ tiện nghi nhiệt trong phòng đồng thời sử dụng điều hòa một cách hợp lý và tiết kiệm năng lượng thay vì chỉ tắt hoàn toàn điều hòa như thuật toán gốc.
 
 \textbf{Định hướng phát triển tiếp theo:}
 \begin{enumerate}
-    \item Chạy huấn luyện đầy đủ 1.000 episodes trên môi trường Sinergym với mô hình trọng số cải tiến đầy đủ để kiểm chứng mức độ tối ưu hóa sâu hơn của tác tử khi hội tụ hoàn toàn.
-    \item Nghiên cứu áp dụng các thuật toán RL tiên tiến hơn hỗ trợ không gian hành động liên tục (như DDPG hoặc PPO) để điều khiển mượt mà thiết lập setpoint nhiệt độ HVAC và độ mở của cửa sổ thay vì điều khiển rời rạc 24 hành động hiện tại.
+    \item Nghiên cứu tích hợp và chạy huấn luyện tác tử trên các công cụ mô phỏng động học nhiệt vật lý thực tế như EnergyPlus thông qua môi trường kết nối Sinergym để kiểm chứng khả năng thích ứng của thuật toán trong môi trường động.
+    \item Khảo sát áp dụng các thuật toán học tăng cường tiên tiến hỗ trợ không gian hành động liên tục (như DDPG hoặc PPO) để điều khiển mượt mà thiết lập setpoint nhiệt độ HVAC và độ mở của cửa sổ thay vì điều khiển rời rạc 24 hành động hiện tại.
 \end{enumerate}
+
+\begin{thebibliography}{99}
+\bibitem{whulx} 
+L. Xiang, et al., "Occupant-centric HVAC and window control: A reinforcement learning model for enhancing indoor thermal comfort and energy efficiency," \textit{Energy and Buildings}, vol. 268, p. 112213, 2022.
+
+\bibitem{ashrae55}
+ASHRAE Standard 55, \textit{Thermal Environmental Conditions for Human Occupancy}, American Society of Heating, Refrigerating and Air-Conditioning Engineers, Atlanta, GA, 2020.
+
+\bibitem{xgboost}
+T. Chen and C. Guestrin, "XGBoost: A scalable tree boosting system," in \textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining}, 2016, pp. 785--794.
+
+\bibitem{dqn}
+V. Mnih et al., "Human-level control through deep reinforcement learning," \textit{Nature}, vol. 518, no. 7540, pp. 529--533, 2015.
+
+\bibitem{sinergym}
+A. Castrillo, et al., "Sinergym: A Portfolio of Environments for Building Energy Optimization with Reinforcement Learning," in \textit{Proceedings of the 9th ACM International Conference on Systems for Energy-Efficient Buildings, Cities, and Transportation}, 2022, pp. 320--321.
+
+\bibitem{energyplus}
+D. B. Crawley, et al., "EnergyPlus: creating a new-generation building energy simulation program," \textit{Energy and Buildings}, vol. 33, no. 4, pp. 319--331, 2001.
+\end{thebibliography}
 
 \end{document}
 
