@@ -1,0 +1,46 @@
+\babel@toc {vietnamese}{}\relax 
+\contentsline {section}{\hbox to\@tempdima {\hfil } DANH MỤC KÝ HIỆU VÀ CHỮ VIẾT TẮT}{7}{section*.4}%
+\contentsline {chapter}{\numberline {1}Mở đầu}{8}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Giới thiệu vấn đề}{8}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Phương pháp tiếp cận và mục tiêu nghiên cứu}{9}{section.1.2}%
+\contentsline {chapter}{\numberline {2}Cơ sở lý thuyết của hệ thống XGB-DQN}{11}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Mô hình môi trường gần đúng XGBoost (Surrogate Model)}{11}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Các đặc trưng của dữ liệu đầu vào}{12}{subsection.2.1.1}%
+\contentsline {section}{\numberline {2.2}Tác tử Học tăng cường Q-Learning sâu (DQN)}{13}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Không gian hành động (Action Space)}{13}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Hàm Reward và Tiêu chuẩn Tiện nghi Nhiệt Thích ứng ASHRAE 55}{13}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Cập nhật Mạng Thần kinh DQN}{15}{subsection.2.2.3}%
+\contentsline {section}{\numberline {2.3}Các phương pháp điều khiển truyền thống và Chỉ số đánh giá so sánh}{16}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Các bộ điều khiển HVAC truyền thống}{16}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Các tham số đánh giá hiệu năng}{17}{subsection.2.3.2}%
+\contentsline {subsubsection}{Các chỉ số đánh giá của nhóm nghiên cứu (Tái hiện)}{17}{subsection.2.3.2}%
+\contentsline {subsubsection}{Các chỉ số đánh giá của bài báo gốc WHU-LX}{18}{Item.13}%
+\contentsline {subsection}{\numberline {2.3.3}Cơ chế tiện nghi và tiết kiệm năng lượng của tác tử RL}{19}{subsection.2.3.3}%
+\contentsline {chapter}{\numberline {3}Phân tích hạn chế kỹ thuật của repo gốc WHU-LX}{20}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Lỗi Quá khớp Đơn ngày (Single-day Overfitting)}{20}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Sự bất đối xứng về biên độ trong hàm phạt Reward (Lỗi 0\% AC)}{20}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Thiếu cấu trúc mạng Target Network và Không chuẩn hóa State}{21}{section.3.3}%
+\contentsline {chapter}{\numberline {4}Cải tiến kỹ thuật đề xuất và Sơ đồ hoạt động của chương trình}{23}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Các cải tiến thuật toán cốt lõi}{23}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Thiết kế mạng DQN cải tiến}{23}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Sơ đồ hoạt động của chương trình}{24}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Tổng quan Kiến trúc Hệ thống}{24}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Luồng Huấn luyện Tổng quan}{24}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Chi tiết Quá trình Ra quyết định}{25}{subsection.4.3.3}%
+\contentsline {subsection}{\numberline {4.3.4}Môi trường Thực thi và Phản hồi}{26}{subsection.4.3.4}%
+\contentsline {subsection}{\numberline {4.3.5}Quá trình Cập nhật Mạng DQN}{27}{subsection.4.3.5}%
+\contentsline {chapter}{\numberline {5}Kết quả thực nghiệm và thảo luận}{29}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Đánh giá hiệu năng thuật toán XGB-DQN}{29}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Độ chính xác dự báo của mô hình XGBoost (Surrogate Model)}{29}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Sự hội tụ của XGB-DQN qua đường cong phần thưởng}{30}{subsection.5.1.2}%
+\contentsline {section}{\numberline {5.2}Tối ưu hóa hiệu năng và khả năng tiết kiệm năng lượng}{31}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Duy trì và cải thiện tiện nghi nhiệt trong nhà}{31}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Tiêu thụ năng lượng và chi phí tiền điện ước tính}{33}{subsection.5.2.2}%
+\contentsline {section}{\numberline {5.3}Điều khiển phối hợp thông minh giữa HVAC và cửa sổ}{34}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Phân tích vận hành theo chuỗi thời gian tuần tiêu biểu}{36}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Phân tích các đồ thị tái hiện do nhóm xây dựng}{38}{section.5.5}%
+\contentsline {chapter}{\numberline {6}Kết luận và định hướng phát triển}{43}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Kết luận}{43}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Định hướng phát triển tiếp theo}{43}{section.6.2}%
+\contentsline {chapter}{Phân công công việc}{44}{chapter*.5}%
+\contentsline {chapter}{Tài liệu tham khảo}{45}{table.6.1}%

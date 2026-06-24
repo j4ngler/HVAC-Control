@@ -1,0 +1,14 @@
+\babel@toc {vietnamese}{}\relax 
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {1.1}{\ignorespaces So sánh đặc tính của các phương pháp điều khiển HVAC: RBC, MPC và Học tăng cường (RL)}}{9}{table.1.1}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {2.1}{\ignorespaces Mô tả chi tiết các đặc trưng dữ liệu đầu vào của hệ thống XGB-DQN}}{12}{table.2.1}%
+\contentsline {table}{\numberline {2.2}{\ignorespaces Định nghĩa chi tiết 24 hành động trong không gian hành động của tác tử}}{13}{table.2.2}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Kết quả đánh giá sai số của 4 phương án mô hình XGBoost trên dữ liệu gốc (Bài báo \cite {whulx})}}{29}{table.5.1}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Bảng so sánh hiệu năng các bộ điều khiển trên toàn bộ 1.763 ngày đánh giá tái hiện}}{33}{table.5.2}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Bảng so sánh hiệu năng chi tiết giữa các kịch bản tại 4 đô thị khảo sát (Bài báo gốc \cite {whulx})}}{34}{table.5.3}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {6.1}{\ignorespaces Bảng phân công và quản lý tiến độ dự án}}{44}{table.6.1}%

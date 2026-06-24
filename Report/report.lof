@@ -1,0 +1,24 @@
+\babel@toc {vietnamese}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Sơ đồ khối hệ thống lai điều khiển HVAC phối hợp cửa sổ XGB-DQN}}{11}{figure.2.1}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Dải giới hạn nhiệt độ tiện nghi thích ứng theo tiêu chuẩn ASHRAE Standard 55}}{15}{figure.2.2}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Tổng quan kiến trúc hệ thống}}{24}{figure.4.1}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Sơ đồ luồng huấn luyện tổng quan}}{25}{figure.4.2}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Chi tiết quá trình ra quyết định của tác tử}}{26}{figure.4.3}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Chi tiết luồng phản hồi từ môi trường Surrogate XGBoost}}{27}{figure.4.4}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Chi tiết quá trình cập nhật mạng DQN}}{28}{figure.4.5}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Hiệu năng khớp chuỗi thời gian (60 bước liên tục) của 4 phương án mô hình XGBoost trong bài báo gốc \cite {whulx}.}}{30}{figure.5.1}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Đường cong phần thưởng tích lũy của tác tử XGB-DQN tại 4 đô thị khảo sát trong bài báo gốc \cite {whulx}.}}{31}{figure.5.2}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Biểu đồ phân bố nhiệt độ trong nhà--ngoài trời và xác suất bật AC tại 4 thành phố dưới ba kịch bản vận hành (Baseline không can thiệp, Người dùng tự điều khiển và XGB-DQN điều khiển) trong bài báo gốc \cite {whulx}.}}{32}{figure.5.3}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Biểu đồ xác suất mở cửa sổ (Window Opening Probability) tại 4 thành phố dưới sự điều khiển của cư dân (Occupant) và thuật toán XGB-DQN trong bài báo gốc \cite {whulx}.}}{35}{figure.5.4}%
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Biểu đồ chuỗi thời gian vận hành liên tục 1 tuần của mô hình XGB-DQN so với baseline tại 4 đô thị trong bài báo gốc \cite {whulx}.}}{37}{figure.5.5}%
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Tiến trình huấn luyện của DQN cải tiến trên môi trường surrogate XGBoost.}}{39}{figure.5.6}%
+\contentsline {figure}{\numberline {5.7}{\ignorespaces So sánh tỷ lệ comfort, bật AC và mở cửa giữa DQN gốc, DQN cải tiến và hành vi thực tế của con người.}}{40}{figure.5.7}%
+\contentsline {figure}{\numberline {5.8}{\ignorespaces So sánh chuỗi thời gian vận hành của DQN gốc, DQN cải tiến và Human trên ngày thử nghiệm tiêu biểu.}}{41}{figure.5.8}%
+\contentsline {figure}{\numberline {5.9}{\ignorespaces So sánh tổng reward trung bình giữa DQN gốc và DQN cải tiến.}}{42}{figure.5.9}%
+\contentsline {figure}{\numberline {5.10}{\ignorespaces Phân phối lựa chọn action của tác tử DQN trong quá trình đánh giá.}}{42}{figure.5.10}%
+\addvspace {10\p@ }
